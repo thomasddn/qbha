@@ -1,0 +1,15 @@
+version: '3.4'
+
+services:
+  qbha:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: qbha:latest
+    container_name: qbha
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+    environment:
+      TZ: Europe/Brussels
+    env_file: .env
