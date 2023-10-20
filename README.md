@@ -3,12 +3,19 @@ QBHA stands for Qbus Bridge for Home Assistant and can be pronounced as "cuba". 
 
 This project was inspired by https://github.com/QbusKoen/qbusMqtt and https://github.com/wk275/qbTools-v2. While both these projects install an entire ecosystem, this project focuses on keeping it as slim as possible.
 
+[![GitHub release (with filter)][releases-shield]][releases]
+![Supports amd64 Architecture][amd64-shield]
+![Supports armv7 Architecture][armv7-shield]
+![Supports arm64 Architecture][arm64-shield]
+![Supports i386 Architecture][i386-shield]
+
+
 ## Setup
 
 ### Prerequisites
 - Qbus home automation system (hardware)
 - Qbus MQTT gateway
-  - Docker version: [Docker Hub](https://hub.docker.com/r/thomasddn/qbusmqtt) | [source](https://github.com/thomasddn/qbusmqtt) .
+  - Docker version: [Docker Hub](https://hub.docker.com/r/thomasddn/qbusmqtt) | [source](https://github.com/thomasddn/qbusmqtt)
   - Bare metal: https://github.com/QbusKoen/qbusMqtt. Be sure to only install the gateway (qbusMqttGw) and optionally Mosquitto. You can also use an [installer script](https://github.com/QbusKoen/QbusMqtt-installer).
 - MQTT broker (e.g. https://hub.docker.com/_/eclipse-mosquitto)
 
@@ -25,7 +32,7 @@ version: '3.4'
 
 services:
   qbha:
-    image: qbha:latest
+    image: thomasddn/qbha:latest
     container_name: qbha
     restart: unless-stopped
     volumes:
@@ -62,3 +69,12 @@ Optionally, you can mount the `/data` folder. It will contain log files and Qbus
 
 ## Remarks
 :warning: This is **not** officially supported by Qbus.
+
+
+
+[releases-shield]: https://img.shields.io/github/v/release/thomasddn/qbha
+[amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
+[armv7-shield]: https://img.shields.io/badge/armv7-yes-green.svg
+[arm64-shield]: https://img.shields.io/badge/arm64-yes-green.svg
+[i386-shield]: https://img.shields.io/badge/i386-yes-green.svg
+[releases]: https://github.com/thomasddn/qbha/releases
