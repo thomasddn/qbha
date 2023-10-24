@@ -61,11 +61,11 @@ Optionally, you can mount the `/data` folder. It will contain log files and Qbus
 
 | Qbus | Home Assistant |
 | --- | --- |
-| Analog | Light |
+| Dimmer | Light |
 | On/Off | Switch |
-| Scene | Scene |
 | Shutter | Cover |
-| Thermo | Climate (heating only) |
+| Thermostat | Climate (heating only) |
+| Scene | Scene |
 
 ## Remarks
 :warning: This is **not** officially supported by Qbus.
