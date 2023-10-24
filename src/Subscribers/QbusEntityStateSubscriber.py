@@ -18,6 +18,9 @@ class QbusEntityStateSubscriber(Subscriber):
 
 
     def process(self, client: mqtt.Client, msg: mqtt.MQTTMessage) -> None:
+        if len(msg.payload) <= 0:
+            return
+
         payload = self._type_adapter.validate_json(msg.payload)
 
         # Skip if not an event

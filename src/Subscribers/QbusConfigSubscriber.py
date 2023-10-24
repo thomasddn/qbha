@@ -28,6 +28,9 @@ class QbusConfigSubscriber(Subscriber):
 
 
     def process(self, client: mqtt.Client, msg: mqtt.MQTTMessage) -> None:
+        if len(msg.payload) <= 0:
+            return
+        
         config = self._type_adapter.validate_json(msg.payload)
         totalEntities = 0
         
