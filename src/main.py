@@ -58,7 +58,7 @@ if __name__ == '__main__':
     try:
         configure_logging()
         logger = logging.getLogger("qbha")
-        logger.info("Starting qbha.")
+        logger.info(f"Starting qbha {settings.Version}.")
 
         subscribers = []
 

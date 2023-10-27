@@ -4,6 +4,8 @@ from pathlib import Path
 
 
 class Settings:
+    _VERSION = "v0.1.0"
+
     def __new__(cls):
         if not hasattr(cls, 'instance'):
             cls.instance = super(Settings, cls).__new__(cls)
@@ -20,7 +22,7 @@ class Settings:
         if self._is_docker:
             self._data_folder = "/data/"
         else:
-            self._data_folder = "data/"
+            self._data_folder = "data/qbha"
 
         # MQTT settings
         self._mqtt_host = os.environ.get("MQTT_HOST")
@@ -76,3 +78,8 @@ class Settings:
     @property
     def DataFolder(self) -> str:
         return self._data_folder
+
+
+    @property
+    def Version(self) -> str:
+        return self._VERSION
