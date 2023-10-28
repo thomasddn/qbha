@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 class Settings:
-    _VERSION = "v0.1.0"
+    _VERSION = "v0.2.0"
 
     def __new__(cls):
         if not hasattr(cls, 'instance'):
