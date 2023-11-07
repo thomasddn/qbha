@@ -1,7 +1,8 @@
+from dotenv import load_dotenv
 import logging
 from logging.handlers import RotatingFileHandler
+import paho.mqtt.client as mqtt
 import sys
-from dotenv import load_dotenv
 
 from Qbha import Qbha
 from Settings import Settings
@@ -10,6 +11,7 @@ from Subscribers.QbusCaptureSubscriber import QbusCaptureSubscriber
 from Subscribers.QbusConfigSubscriber import QbusConfigSubscriber
 from Subscribers.QbusControllerStateSubscriber import QbusControllerStateSubscriber
 from Subscribers.QbusEntityStateSubscriber import QbusEntityStateSubscriber
+from Subscribers.Subscriber import Subscriber
 
 
 load_dotenv()
@@ -55,12 +57,15 @@ def configure_logging():
 
 
 if __name__ == '__main__':
-    try:
-        configure_logging()
-        logger = logging.getLogger("qbha")
-        logger.info(f"Starting qbha {settings.Version}.")
+    configure_logging()
+    logger = logging.getLogger("qbha")
+    logger.info(f"Starting qbha {settings.Version}.")
 
-        subscribers = []
+    mqtt_client: mqtt.Client = None
+    subscribers: list[Subscriber] = []
+    
+    try:
+        mqtt_client = mqtt.Client(f"qbha-{settings.Hostname}")
 
         if settings.QbusCapture:
             subscribers.append(QbusCaptureSubscriber())
@@ -68,9 +73,9 @@ if __name__ == '__main__':
         subscribers.extend([HomeAssistantStatusSubscriber(),
             QbusConfigSubscriber(),
             QbusControllerStateSubscriber(),
-            QbusEntityStateSubscriber()])
+            QbusEntityStateSubscriber(mqtt_client)])
 
-        qbha = Qbha(subscribers)
+        qbha = Qbha(mqtt_client, subscribers)
         qbha.start()
     except KeyboardInterrupt:
         pass
@@ -78,3 +83,9 @@ if __name__ == '__main__':
         logger.exception(exception)
     finally:
         logger.info("Closing application.")
+
+        for subscriber in subscribers:
+            subscriber.close()
+
+        if mqtt_client is not None:
+            mqtt_client.disconnect()

@@ -1,3 +1,4 @@
+import atexit
 import paho.mqtt.client as mqtt
 
 
@@ -5,6 +6,8 @@ class Subscriber:
     def __init__(self) -> None:
         self.topic: str
         self.qos: int = 2
+        
+        atexit.register(self.close)
 
 
     def can_process(self, msg: mqtt.MQTTMessage) -> bool:
@@ -12,6 +15,10 @@ class Subscriber:
 
 
     def process(self, client: mqtt.Client, msg: mqtt.MQTTMessage) -> None:
+        pass
+
+
+    def close(self) -> None:
         pass
 
 
