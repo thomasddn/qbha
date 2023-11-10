@@ -9,24 +9,24 @@ class Qbha:
     _logger = logging.getLogger("qbha." + __name__)
 
 
-    def __init__(self, subscribers: list[Subscriber]) -> None:
+    def __init__(self, client: mqtt.Client, subscribers: list[Subscriber]) -> None:
+        self.mqtt_client = client
         self.subscribers = subscribers
 
 
     def start(self) -> None:
         settings = Settings()
         
-        client = mqtt.Client("qbha")
-        client.on_connect = self._on_connect
-        client.on_message = self._on_message
-        client.on_disconnect = self._on_disconnect
+        self.mqtt_client.on_connect = self._on_connect
+        self.mqtt_client.on_message = self._on_message
+        self.mqtt_client.on_disconnect = self._on_disconnect
 
-        client.will_set(self._QBHA_AVAILABILITY_TOPIC, "offline")
-        client.username_pw_set(settings.MqttUser, settings.MqttPassword)
+        self.mqtt_client.will_set(self._QBHA_AVAILABILITY_TOPIC, "offline")
+        self.mqtt_client.username_pw_set(settings.MqttUser, settings.MqttPassword)
 
-        self._logger.info(f"MQTT client 'qbha' connecting to {settings.MqttHost}:{settings.MqttPort} with user '{settings.MqttUser}'.")
-        client.connect(settings.MqttHost, settings.MqttPort, 60)
-        client.loop_forever()
+        self._logger.info(f"MQTT client connecting to {settings.MqttHost}:{settings.MqttPort} with user '{settings.MqttUser}'.")
+        self.mqtt_client.connect(settings.MqttHost, settings.MqttPort, 60)
+        self.mqtt_client.loop_forever()
 
 
     def _on_connect(self, client: mqtt.Client, userdata, flags, rc) -> None:

@@ -1,10 +1,12 @@
 import logging
 import os
 from pathlib import Path
+import socket
 
 
 class Settings:
     _VERSION = "v0.2.0"
+
 
     def __new__(cls):
         if not hasattr(cls, 'instance'):
@@ -22,7 +24,10 @@ class Settings:
         if self._is_docker:
             self._data_folder = "/data/"
         else:
-            self._data_folder = "data/qbha"
+            self._data_folder = "data/"
+
+        # Hostname
+        self._hostname = socket.gethostname()
 
         # MQTT settings
         self._mqtt_host = os.environ.get("MQTT_HOST")
@@ -44,6 +49,11 @@ class Settings:
         # Qbus capture
         self._qbus_capture: bool = os.environ.get("QBUS_CAPTURE", "False").lower() in ("true", "1")
 
+
+    @property
+    def Hostname(self) -> str:
+        return self._hostname
+    
 
     @property
     def MqttHost(self) -> str:
