@@ -1,7 +1,6 @@
 # QBHA
 QBHA stands for Qbus Bridge for Home Assistant and can be pronounced as "cuba". QBHA will create MQTT topics for Home Assistant based on your Qbus configuration, making all supported entities available in Home Assistant.
 
-This project was inspired by https://github.com/QbusKoen/qbusMqtt and https://github.com/wk275/qbTools-v2. While both these projects install an entire ecosystem, this project focuses on keeping it as slim as possible.
 
 [![GitHub release (with filter)][releases-shield]][releases]
 ![Supports amd64 Architecture][amd64-shield]
@@ -9,6 +8,35 @@ This project was inspired by https://github.com/QbusKoen/qbusMqtt and https://gi
 ![Supports arm64 Architecture][arm64-shield]
 ![Supports i386 Architecture][i386-shield]
 
+## Features
+
+### General
+
+- Full interoperability between Qbus and Home Assistant for the supported entities.
+- Automatic firmware update of your Qbus controller (if required).
+- New Qbus entities are automatically added to Home Assistant.
+- Entities get a persistent ID in Home Assistant, even when changing the Qbus entity names in Serial Manager or when Qbus MQTT rebuilds.
+- Climate entity in Home Assistant reflects current temperature, requested temperature and preset, regardless of whether you change the temperature by preset or manually.
+- Climate entity in Home Assistant automatically sets its mode to either `heat` or `off`.
+- When Home Assistant restarts, all Qbus entities will report their current state.
+
+### Customizations
+
+All customizations are optional.
+
+- Automatically create sensors for climate entities so you can show a nice graph on your dashboard.
+- \[Soon] Choose which climate presets you want to make available in Home Assistant.
+- \[Soon] Define on/off entities that should be created as a binary sensor.
+
+### Supported entities
+
+| Qbus | Home Assistant |
+| --- | --- |
+| Dimmer | Light |
+| On/Off | Switch |
+| Shutter | Cover |
+| Thermostat | Climate (heating only) |
+| Scene | Scene |
 
 ## Setup
 
@@ -58,15 +86,9 @@ services:
 
 Optionally, you can mount the `/data` folder. It will contain log files and Qbus configuration files.
 
-## Supported entities
+## Credits
 
-| Qbus | Home Assistant |
-| --- | --- |
-| Dimmer | Light |
-| On/Off | Switch |
-| Shutter | Cover |
-| Thermostat | Climate (heating only) |
-| Scene | Scene |
+This project was inspired by https://github.com/QbusKoen/qbusMqtt and https://github.com/wk275/qbTools-v2.
 
 ## Remarks
 :warning: This is **not** officially supported by Qbus.
