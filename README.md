@@ -50,6 +50,7 @@ services:
 | MQTT_PORT | N | 1883 | The port of the MQTT broker. |
 | MQTT_USER | N | \<empty> | The username to connect to the MQTT broker. |
 | MQTT_PWD | N | \<empty> | The password to connect to the MQTT broker. |
+| CLIMATE_SENSORS | N | False | Create sensors for climate entities, having current temperature as state. |
 | LOG_LEVEL | N | INFO | The log level to use. Can be one of the following: CRITICAL, ERROR, WARNING, INFO, DEBUG. |
 | QBUS_CAPTURE | N | False | Log all Qbus topic messages to a file, regardless of LOG_LEVEL. Used for debugging purposes. |
 

@@ -11,6 +11,7 @@ from QbusConfigService import QbusConfigService
 from QbusMqttModels.QbusConfig import QbusConfig
 from QbusMqttModels.QbusConfigDevice import QbusConfigDevice
 from QbusMqttModels.QbusConfigEntity import QbusConfigEntity
+from Settings import Settings
 from Subscribers.Subscriber import Subscriber
 
 
@@ -19,7 +20,7 @@ class QbusConfigSubscriber(Subscriber):
     _HA_TYPE_MAP = { "analog": "light", "onoff": "switch", "scene": "scene", "shutter": "cover", "thermo": "climate" }
 
     _logger = logging.getLogger("qbha." + __name__)
-
+    _settings = Settings()
 
     def __init__(self) -> None:
         super().__init__()
@@ -47,40 +48,88 @@ class QbusConfigSubscriber(Subscriber):
         QbusConfigService.save(msg.payload, config)
         
         # Create HA entities
-        entityIds = []
-        messages: list[HomeAssistantMessage] = []
-
-        for (entity, controller) in QbusConfigService.get_entities_with_controller():
-            message = self._create_homeassistant_message(entity, controller)
-
-            if message:
-                entityIds.append(entity.id)
-                messages.append(message)
+        entityIds, messages = self._create_homeassistant_messages()
 
         # Request entity states from Qbus
+        self._logger.debug("Requesting states from Qbus.")
         if len(entityIds) > 0:
             client.publish("cloudapp/QBUSMQTTGW/getState", json.dumps(entityIds))
             time.sleep(10)
 
         # Publish HA entities to MQTT
+        self._logger.debug("Publishing Home Assistant MQTT messages.")
         for m in messages:
-            client.publish(m.topic, m.payload.model_dump_json(), m.qos, m.retain)
+            payload = None if m.payload is None else m.payload.model_dump_json()
+            client.publish(m.topic, payload, m.qos, m.retain)
 
 
-    def _create_homeassistant_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage | None:
+    def _create_homeassistant_messages(self) -> tuple[list[str], list[HomeAssistantMessage]]:
+        entityIds = list[str] = []
+        messages: list[HomeAssistantMessage] = []
+
+        for (entity, controller) in QbusConfigService.get_entities_with_controller():
+            message = self._create_generic_message(entity, controller)
+
+            if message:
+                self._logger.debug(f"Adding entity {message.payload.unique_id}.")
+                entityIds.append(entity.id)
+                messages.append(message)
+
+            if entity.type.lower() == "thermo":
+                message = self._create_climate_sensor_message(entity, controller)
+
+                if self._settings.ClimateSensors:
+                    self._logger.debug(f"Adding climate sensor {message.payload.unique_id}.")
+                else:
+                    # This will remove previously created climate sensors.
+                    self._logger.debug(f"Climate sensor {message.payload.unique_id} marked for removal.")
+                    message.payload = None
+
+                messages.append(message)
+
+        return entityIds, messages
+
+
+    def _create_generic_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage | None:
         entityType = entity.type.lower()
 
         if not self._HA_TYPE_MAP.get(entityType):
             self._logger.warn(f"Entity type '{entityType}' not (yet) supported.")
             return None
         
+        message = self._create_base_message(entity, controller)
+
+        match entityType:
+            case "analog":
+                self._configure_analog_payload(message.payload, entity)
+            case "onoff":
+                self._configure_onoff_payload(message.payload, entity)
+            case "scene":
+                self._configure_scene_payload(message.payload, entity)
+            case "shutter":
+                self._configure_shutter_payload(message.payload, entity)
+            case "thermo":
+                self._configure_thermo_payload(message.payload, entity)
+    
+        return message
+
+
+    def _create_climate_sensor_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+        message = self._create_base_message(entity, controller, "sensor", "_temperature")
+        message.payload.device_class = "temperature"
+        message.payload.unit_of_measurement = "°C"
+        message.payload.state_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/state"
+        message.payload.value_template = "{%- if value_json.properties.currTemp is defined -%} {{ value_json.properties.currTemp }} {%- endif -%}"
+    
+        return message
+
+
+    def _create_base_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice, domain: str = None, id_suffix: str = "") -> HomeAssistantMessage:
         refId = self._parseRefId(entity.refId)
-        uniqueId = f"qbus_{controller.id}_{refId}"
+        uniqueId = f"qbus_{controller.id}_{refId}{id_suffix}"
         
-        message = HomeAssistantMessage()
-        message.topic = f"homeassistant/{self._HA_TYPE_MAP[entity.type]}/{uniqueId}/config"
-        message.retain = True
-        message.qos = 2
+        if domain is None or domain == "":
+            domain = self._HA_TYPE_MAP[entity.type]
 
         device = HomeAssistantDevice()
         device.name = "Qbus"
@@ -93,24 +142,18 @@ class QbusConfigSubscriber(Subscriber):
         payload.name = entity.name
         payload.unique_id = uniqueId
         payload.object_id = uniqueId
-        payload.command_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/setState"
-        payload.state_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/state"
         payload.device = device
 
+        if domain != "sensor":
+            payload.command_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/setState"
+            payload.state_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/state"
+
+        message = HomeAssistantMessage()
+        message.topic = f"homeassistant/{domain}/{uniqueId}/config"
+        message.retain = True
+        message.qos = 2
         message.payload = payload
 
-        match entity.type.lower():
-            case "analog":
-                self._configure_analog_payload(payload, entity)
-            case "onoff":
-                self._configure_onoff_payload(payload, entity)
-            case "scene":
-                self._configure_scene_payload(payload, entity)
-            case "shutter":
-                self._configure_shutter_payload(payload, entity)
-            case "thermo":
-                self._configure_thermo_payload(payload, entity)
-    
         return message
 
 
@@ -185,7 +228,7 @@ class QbusConfigSubscriber(Subscriber):
 
         payload.modes = ["heat", "off"]
         payload.mode_state_topic = payload.state_topic
-        payload.mode_state_template = "{%- if value_json.properties.setTemp is defined and value_json.properties.currTemp is defined -%} {%- if value_json.properties.setTemp > value_json.properties.currTemp -%} heat {%- else -%} off {%- endif -%} {%- endif -%}"
+        payload.mode_state_template = "{%- if value_json.properties.setTemp is defined and value_json.properties.currTemp is defined -%} {%- if value_json.properties.setTemp > value_json.properties.currTemp -%} heat {%- else -%} off {%- endif -%} {%- else -%} off {%- endif -%}"
 
         payload.preset_modes = ["MANUEEL", "VORST", "ECONOMY", "COMFORT", "NACHT"]
         payload.preset_mode_command_topic = payload.command_topic

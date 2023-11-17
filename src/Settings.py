@@ -5,7 +5,7 @@ import socket
 
 
 class Settings:
-    _VERSION = "v0.3.0"
+    _VERSION = "v0.4.0"
 
 
     def __new__(cls):
@@ -30,9 +30,6 @@ class Settings:
         self._hostname = socket.gethostname()
 
         # MQTT settings
-        self._mqtt_host = os.environ.get("MQTT_HOST")
-        self._mqtt_user = os.environ.get("MQTT_USER")
-
         self._mqtt_port: int = 1883
         config_port = os.environ.get("MQTT_PORT")
 
@@ -46,18 +43,39 @@ class Settings:
         log_level = os.environ.get("LOG_LEVEL", "INFO")
         self._log_level: int = getattr(logging, log_level.upper(), logging.INFO)
 
-        # Qbus capture
+        # Other
         self._qbus_capture: bool = os.environ.get("QBUS_CAPTURE", "False").lower() in ("true", "1")
+        self._climate_sensors: bool = os.environ.get("CLIMATE_SENSORS", "False").lower() in ("true", "1")
+
+
+    @property
+    def ClimateSensors(self) -> bool:
+        return self._climate_sensors
+
+
+    @property
+    def DataFolder(self) -> str:
+        return self._data_folder
 
 
     @property
     def Hostname(self) -> str:
         return self._hostname
-    
+
+
+    @property
+    def LogLevel(self) -> int:
+        return self._log_level
+
 
     @property
     def MqttHost(self) -> str:
-        return self._mqtt_host
+        return os.environ.get("MQTT_HOST")
+
+
+    @property
+    def MqttPassword(self) -> str:
+        return os.environ.get("MQTT_PWD")
 
 
     @property
@@ -67,27 +85,12 @@ class Settings:
 
     @property
     def MqttUser(self) -> str:
-        return self._mqtt_user
-    
-
-    @property
-    def MqttPassword(self) -> str:
-        return os.environ.get("MQTT_PWD")
-    
-
-    @property
-    def LogLevel(self) -> int:
-        return self._log_level
+        return os.environ.get("MQTT_USER")
 
 
     @property
     def QbusCapture(self) -> bool:
         return self._qbus_capture
-
-
-    @property
-    def DataFolder(self) -> str:
-        return self._data_folder
 
 
     @property

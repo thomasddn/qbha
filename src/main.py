@@ -59,7 +59,7 @@ def configure_logging():
 if __name__ == '__main__':
     configure_logging()
     logger = logging.getLogger("qbha")
-    logger.info(f"Starting qbha {settings.Version}.")
+    logger.info(f"Starting QBHA {settings.Version}.")
 
     mqtt_client: mqtt.Client = None
     subscribers: list[Subscriber] = []

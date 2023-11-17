@@ -7,6 +7,7 @@ from Subscribers.Subscriber import Subscriber
 class Qbha:
     _QBHA_AVAILABILITY_TOPIC = "qbha/availability"
     _logger = logging.getLogger("qbha." + __name__)
+    _settings = Settings()
 
 
     def __init__(self, client: mqtt.Client, subscribers: list[Subscriber]) -> None:
@@ -15,17 +16,15 @@ class Qbha:
 
 
     def start(self) -> None:
-        settings = Settings()
-        
         self.mqtt_client.on_connect = self._on_connect
         self.mqtt_client.on_message = self._on_message
         self.mqtt_client.on_disconnect = self._on_disconnect
 
         self.mqtt_client.will_set(self._QBHA_AVAILABILITY_TOPIC, "offline")
-        self.mqtt_client.username_pw_set(settings.MqttUser, settings.MqttPassword)
+        self.mqtt_client.username_pw_set(self._settings.MqttUser, self._settings.MqttPassword)
 
-        self._logger.info(f"MQTT client connecting to {settings.MqttHost}:{settings.MqttPort} with user '{settings.MqttUser}'.")
-        self.mqtt_client.connect(settings.MqttHost, settings.MqttPort, 60)
+        self._logger.info(f"MQTT client connecting to {self._settings.MqttHost}:{self._settings.MqttPort} with user '{self._settings.MqttUser}'.")
+        self.mqtt_client.connect(self._settings.MqttHost, self._settings.MqttPort, 60)
         self.mqtt_client.loop_forever()
 
 
@@ -47,6 +46,7 @@ class Qbha:
     def _on_message(self, client: mqtt.Client, userdata, msg: mqtt.MQTTMessage) -> None:
         for subscriber in self.subscribers:
             if subscriber.can_process(msg):
+                self._logger.debug(f"Processing {msg.topic} with {type(subscriber).__name__}.")
                 subscriber.process(client, msg)
 
 

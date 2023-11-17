@@ -70,7 +70,7 @@ class QbusEntityStateSubscriber(Subscriber):
 
             # Publish to MQTT
             if len(entity_ids) > 0:
-                self._logger.debug(f"Updating state for thermostat {entity_ids}.")
+                self._logger.debug(f"Requesting state for thermostat {entity_ids}.")
                 self.mqtt_client.publish("cloudapp/QBUSMQTTGW/getState", json.dumps(entity_ids))
             
             # If no kill signal is set, sleep for the interval.
