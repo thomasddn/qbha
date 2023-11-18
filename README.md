@@ -1,6 +1,7 @@
 # QBHA
 QBHA stands for Qbus Bridge for Home Assistant and can be pronounced as "cuba". QBHA will create MQTT topics for Home Assistant based on your Qbus configuration, making all supported entities available in Home Assistant.
 
+The application runs as a Docker container. It is also available as a Home Assistant add-on: https://github.com/thomasddn/home-assistant-addons.
 
 [![GitHub release (with filter)][releases-shield]][releases]
 ![Supports amd64 Architecture][amd64-shield]
@@ -25,7 +26,7 @@ QBHA stands for Qbus Bridge for Home Assistant and can be pronounced as "cuba". 
 All customizations are optional.
 
 - Automatically create sensors for climate entities so you can show a nice graph on your dashboard.
-- \[Soon] Choose which climate presets you want to make available in Home Assistant.
+- Choose which climate presets you want to make available in Home Assistant.
 - \[Soon] Define on/off entities that should be created as a binary sensor.
 
 ### Supported entities
@@ -41,11 +42,11 @@ All customizations are optional.
 ## Setup
 
 ### Prerequisites
-- Qbus home automation system (hardware)
-- Qbus MQTT gateway
-  - Docker version: [Docker Hub](https://hub.docker.com/r/thomasddn/qbusmqtt) | [source](https://github.com/thomasddn/qbusmqtt)
+- Qbus home automation system (hardware).
+- Qbus MQTT gateway. Choose one of these installation methods:
+  - Docker version: thomasddn/qbusmqtt ([Docker Hub](https://hub.docker.com/r/thomasddn/qbusmqtt) | [source](https://github.com/thomasddn/qbusmqtt))
   - Bare metal: https://github.com/QbusKoen/qbusMqtt. Be sure to only install the gateway (qbusMqttGw) and optionally Mosquitto. You can also use an [installer script](https://github.com/QbusKoen/QbusMqtt-installer).
-- MQTT broker (e.g. https://hub.docker.com/_/eclipse-mosquitto)
+- MQTT broker (e.g. https://hub.docker.com/_/eclipse-mosquitto).
 
 ### Installation
 
@@ -70,6 +71,8 @@ services:
       TZ: Europe/Brussels
 ```
 
+Check the wiki for more examples.
+
 ### Configuration
 
 | Key | Required | Default value | Description |
@@ -78,9 +81,10 @@ services:
 | MQTT_PORT | N | 1883 | The port of the MQTT broker. |
 | MQTT_USER | N | \<empty> | The username to connect to the MQTT broker. |
 | MQTT_PWD | N | \<empty> | The password to connect to the MQTT broker. |
-| CLIMATE_SENSORS | N | False | Create sensors for climate entities, having current temperature as state. |
-| LOG_LEVEL | N | INFO | The log level to use. Can be one of the following: CRITICAL, ERROR, WARNING, INFO, DEBUG. |
+| CLIMATE_PRESETS | N | MANUEEL,VORST,NACHT,ECONOMY,COMFORT | Comma separated list of climate presets you want to have available in HA. Also useful if your controller is set to another language. Applies to all climate entities. |
+| CLIMATE_SENSORS | N | False | Create sensors for climate entities, having the current temperature as state. |
 | QBUS_CAPTURE | N | False | Log all Qbus topic messages to a file, regardless of LOG_LEVEL. Used for debugging purposes. |
+| LOG_LEVEL | N | INFO | The log level to use. Can be one of the following: CRITICAL, ERROR, WARNING, INFO, DEBUG. |
 
 ### Data folder
 
