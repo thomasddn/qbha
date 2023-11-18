@@ -19,9 +19,12 @@ class Settings:
         # Docker
         cgroup = Path('/proc/self/cgroup')
         self._is_docker = Path('/.dockerenv').is_file() or cgroup.is_file() and 'docker' in cgroup.read_text()
+        self._is_ha_addon: bool = os.environ.get("IS_HA_ADDON", "False").lower() in ("true", "1")
 
         # Data folder
-        if self._is_docker:
+        if self._is_ha_addon:
+            self._data_folder = "/config/"
+        elif self._is_docker:
             self._data_folder = "/data/"
         else:
             self._data_folder = "data/"
@@ -46,6 +49,14 @@ class Settings:
         # Other
         self._qbus_capture: bool = os.environ.get("QBUS_CAPTURE", "False").lower() in ("true", "1")
         self._climate_sensors: bool = os.environ.get("CLIMATE_SENSORS", "False").lower() in ("true", "1")
+
+        climate_presets = os.environ.get("CLIMATE_PRESETS", "MANUEEL,VORST,NACHT,ECONOMY,COMFORT").split(",")
+        self._climate_presets: list[str] = [x for x in climate_presets if x.strip()]
+
+
+    @property
+    def ClimatePresets(self) -> list[str]:
+        return self._climate_presets
 
 
     @property

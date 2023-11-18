@@ -5,6 +5,11 @@
 ### Added
 
 - Option to create sensors for climate entities (#2)
+- Option to define which climate presets to make available in HA
+
+### Changed
+
+- Make use of the `addon_configs` folder when running as HA add-on
 
 
 ## [0.3.0] - 2023-11-10

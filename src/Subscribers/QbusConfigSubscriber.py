@@ -64,7 +64,7 @@ class QbusConfigSubscriber(Subscriber):
 
 
     def _create_homeassistant_messages(self) -> tuple[list[str], list[HomeAssistantMessage]]:
-        entityIds = list[str] = []
+        entityIds: list[str] = []
         messages: list[HomeAssistantMessage] = []
 
         for (entity, controller) in QbusConfigService.get_entities_with_controller():
@@ -230,7 +230,7 @@ class QbusConfigSubscriber(Subscriber):
         payload.mode_state_topic = payload.state_topic
         payload.mode_state_template = "{%- if value_json.properties.setTemp is defined and value_json.properties.currTemp is defined -%} {%- if value_json.properties.setTemp > value_json.properties.currTemp -%} heat {%- else -%} off {%- endif -%} {%- else -%} off {%- endif -%}"
 
-        payload.preset_modes = ["MANUEEL", "VORST", "ECONOMY", "COMFORT", "NACHT"]
+        payload.preset_modes = self._settings.ClimatePresets
         payload.preset_mode_command_topic = payload.command_topic
         payload.preset_mode_command_template = '{"id": "' + entity.id + '", "type": "state", "properties": {"currRegime": "{{ value }}" }}'
         payload.preset_mode_state_topic = payload.state_topic
