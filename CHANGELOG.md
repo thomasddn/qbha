@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Option to create binary sensors for certain switch entities (#3)
+
 ## [0.4.0] - 2023-11-21
 
 ### Added

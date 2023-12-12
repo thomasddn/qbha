@@ -68,60 +68,65 @@ class QbusConfigSubscriber(Subscriber):
         messages: list[HomeAssistantMessage] = []
 
         for (entity, controller) in QbusConfigService.get_entities_with_controller():
-            message = self._create_generic_message(entity, controller)
+            message = self._create_homeassistant_message(entity, controller)
 
-            if message:
-                self._logger.debug(f"Adding entity {message.payload.unique_id}.")
+            if isinstance(message, list):
                 entityIds.append(entity.id)
-                messages.append(message)
 
-            if entity.type.lower() == "thermo":
-                message = self._create_climate_sensor_message(entity, controller)
+                for m in message:
+                    if m.payload:
+                        self._logger.debug(f"Adding entity {m.topic}.")
+                    else:
+                        self._logger.debug(f"Removing entity {m.topic}.")
 
-                if self._settings.ClimateSensors:
-                    self._logger.debug(f"Adding climate sensor {message.payload.unique_id}.")
+                    messages.append(m)
+            elif message:
+                if message.payload:
+                    self._logger.debug(f"Adding entity {message.topic}.")
                 else:
-                    # This will remove previously created climate sensors.
-                    self._logger.debug(f"Climate sensor {message.payload.unique_id} marked for removal.")
-                    message.payload = None
+                    self._logger.debug(f"Removing entity {message.topic}.")
 
+                entityIds.append(entity.id)
                 messages.append(message)
 
         return entityIds, messages
 
 
-    def _create_generic_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage | None:
+    def _create_homeassistant_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage | list[HomeAssistantMessage] | None:
         entityType = entity.type.lower()
 
         if not self._HA_TYPE_MAP.get(entityType):
             self._logger.warn(f"Entity type '{entityType}' not (yet) supported.")
             return None
-        
-        message = self._create_base_message(entity, controller)
 
         match entityType:
             case "analog":
-                self._configure_analog_payload(message.payload, entity)
+                return self._create_analog_message(entity, controller)
             case "onoff":
-                self._configure_onoff_payload(message.payload, entity)
+                onoff_message = self._create_onoff_message(entity, controller)
+                binarysensor_message = self._create_binarysensor_message(entity, controller)
+
+                if self._onoff_as_binarysensor(entity):
+                    onoff_message.payload = None
+                else:
+                    binarysensor_message.payload = None
+
+                return [onoff_message, binarysensor_message]
+
             case "scene":
-                self._configure_scene_payload(message.payload, entity)
+                return self._create_scene_message(entity, controller)
             case "shutter":
-                self._configure_shutter_payload(message.payload, entity)
+                return self._create_shutter_message(entity, controller)
             case "thermo":
-                self._configure_thermo_payload(message.payload, entity)
-    
-        return message
+                thermo_message = self._create_thermo_message(entity, controller)
+                climatesensor_message = self._create_climatesensor_message(entity, controller)
 
+                if not self._settings.ClimateSensors:
+                    climatesensor_message.payload = None
 
-    def _create_climate_sensor_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
-        message = self._create_base_message(entity, controller, "sensor", "_temperature")
-        message.payload.device_class = "temperature"
-        message.payload.unit_of_measurement = "°C"
-        message.payload.state_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/state"
-        message.payload.value_template = "{%- if value_json.properties.currTemp is defined -%} {{ value_json.properties.currTemp }} {%- endif -%}"
+                return [thermo_message, climatesensor_message]
     
-        return message
+        return None
 
 
     def _create_base_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice, domain: str = None, id_suffix: str = "") -> HomeAssistantMessage:
@@ -143,10 +148,10 @@ class QbusConfigSubscriber(Subscriber):
         payload.unique_id = uniqueId
         payload.object_id = uniqueId
         payload.device = device
+        payload.state_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/state"
 
-        if domain != "sensor":
+        if domain and not domain.endswith("sensor"):
             payload.command_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/setState"
-            payload.state_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/state"
 
         message = HomeAssistantMessage()
         message.topic = f"homeassistant/{domain}/{uniqueId}/config"
@@ -169,76 +174,115 @@ class QbusConfigSubscriber(Subscriber):
         return None
     
 
-    def _configure_analog_payload(self, payload: HomeAssistantPayload, entity: QbusConfigEntity) -> None:
-        payload.schema = "template"
-        payload.brightness_template = "{{ value_json.properties.value | float | multiply(2.55) | round(0) }}"
-        payload.command_off_template = '{"id": "' + entity.id + '", "type": "state", "properties": {"value": 0}}'
-        payload.command_on_template = '{%- if brightness is defined -%} {"id": "' + entity.id + '", "type": "state", "properties": {"value":{{brightness | float | multiply(0.39215686) | round(0)}}}} {%- else -%} {"id": "' + entity.id + '", "type": "state", "properties": {"value":100}} {%- endif -%} }'
-        payload.state_template = '{% if value_json.properties.value > 0 %} on {% else %} off {% endif %}'
+    def _create_analog_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+        message = self._create_base_message(entity, controller)
+        message.payload.schema = "template"
+        message.payload.brightness_template = "{{ value_json.properties.value | float | multiply(2.55) | round(0) }}"
+        message.payload.command_off_template = '{"id": "' + entity.id + '", "type": "state", "properties": {"value": 0}}'
+        message.payload.command_on_template = '{%- if brightness is defined -%} {"id": "' + entity.id + '", "type": "state", "properties": {"value":{{brightness | float | multiply(0.39215686) | round(0)}}}} {%- else -%} {"id": "' + entity.id + '", "type": "state", "properties": {"value":100}} {%- endif -%} }'
+        message.payload.state_template = '{% if value_json.properties.value > 0 %} on {% else %} off {% endif %}'
+    
+        return message
     
 
-    def _configure_onoff_payload(self, payload: HomeAssistantPayload, entity: QbusConfigEntity) -> None:
-        payload.payload_on = '{"id": "' + entity.id + '", "type": "state", "properties": {"value": true}}'
-        payload.payload_off = '{"id": "' + entity.id + '", "type": "state", "properties": {"value": false}}'
-        payload.value_template = "{{ value_json['properties']['value'] }}"
-        payload.state_on = True
-        payload.state_off = False
-        payload.force_update = True
+    def _create_onoff_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+        message = self._create_base_message(entity, controller)
+        message.payload.payload_on = '{"id": "' + entity.id + '", "type": "state", "properties": {"value": true}}'
+        message.payload.payload_off = '{"id": "' + entity.id + '", "type": "state", "properties": {"value": false}}'
+        message.payload.value_template = "{{ value_json['properties']['value'] }}"
+        message.payload.state_on = True
+        message.payload.state_off = False
+    
+        return message
+
+
+    def _create_binarysensor_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+        message = self._create_base_message(entity, controller, "binary_sensor")
+        message.payload.value_template = "{{ value_json['properties']['value'] }}"
+        message.payload.payload_on = True
+        message.payload.payload_off = False
+        return message
+
+
+    def _create_climatesensor_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+        message = self._create_base_message(entity, controller, "sensor", "_temperature")
+        message.payload.device_class = "temperature"
+        message.payload.unit_of_measurement = "°C"
+        message.payload.value_template = "{%- if value_json.properties.currTemp is defined -%} {{ value_json.properties.currTemp }} {%- endif -%}"
+    
+        return message
+
+
+    def _create_scene_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+        message = self._create_base_message(entity, controller)
+        message.payload.payload_on = '{"id":"' + entity.id + '", "type": "action", "action": "active"}'
+    
+        return message
     
 
-    def _configure_scene_payload(self, payload: HomeAssistantPayload, entity: QbusConfigEntity) -> None:
-        payload.payload_on = '{"id":"' + entity.id + '", "type": "action", "action": "active"}'
-    
+    def _create_shutter_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+        message = self._create_base_message(entity, controller)
 
-    def _configure_shutter_payload(self, payload: HomeAssistantPayload, entity: QbusConfigEntity) -> None:
         if (entity.properties.get("state") != None):
-            payload.payload_close = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "down"}}'
-            payload.payload_open = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "up"}}'
-            payload.payload_stop = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "stop"}}'
-            payload.state_closing = "down"
-            payload.state_opening = "up"
-            payload.state_stopped = "stop"
-            payload.value_template = "{{ value_json['properties']['state'] }}"
+            message.payload.payload_close = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "down"}}'
+            message.payload.payload_open = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "up"}}'
+            message.payload.payload_stop = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "stop"}}'
+            message.payload.state_closing = "down"
+            message.payload.state_opening = "up"
+            message.payload.state_stopped = "stop"
+            message.payload.value_template = "{{ value_json['properties']['state'] }}"
             #payload.optimistic = true
         else:
-            payload.payload_close = '{"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition": 0}}'
-            payload.payload_open = '{"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition": 100}}'
-            payload.payload_stop = None
-            payload.state_closing = "down"
-            payload.state_opening = "up"
-            payload.state_stopped = "stop"
-            payload.value_template = "{{ value_json['properties']['shutterPosition'] }}"
-            #payload.optimistic = true
-            payload.position_closed = 0
-            payload.position_open = 100
-            payload.position_template = "{{ value_json['properties']['shutterPosition'] }}"
-            payload.position_topic = payload.state_topic
-            payload.set_position_template = '{%- if position is defined -%} {"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition":{{position| float | round(0)}}}} {%- else -%} {"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition":100}} {%- endif -%} }'
-            payload.set_position_topic = payload.command_topic
+            message.payload.payload_close = '{"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition": 0}}'
+            message.payload.payload_open = '{"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition": 100}}'
+            message.payload.payload_stop = None
+            message.payload.state_closing = "down"
+            message.payload.state_opening = "up"
+            message.payload.state_stopped = "stop"
+            message.payload.value_template = "{{ value_json['properties']['shutterPosition'] }}"
+            #message.payload.optimistic = true
+            message.payload.position_closed = 0
+            message.payload.position_open = 100
+            message.payload.position_template = "{{ value_json['properties']['shutterPosition'] }}"
+            message.payload.position_topic = message.payload.state_topic
+            message.payload.set_position_template = '{%- if position is defined -%} {"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition":{{position| float | round(0)}}}} {%- else -%} {"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition":100}} {%- endif -%} }'
+            message.payload.set_position_topic = message.payload.command_topic
+    
+        return message
     
 
-    def _configure_thermo_payload(self, payload: HomeAssistantPayload, entity: QbusConfigEntity) -> None:
-        payload.temperature_unit = "C"
-        payload.precision = 0.1
-        payload.temp_step = 0.5
-        payload.force_update = True
+    def _create_thermo_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+        message = self._create_base_message(entity, controller)
+        message.payload.temperature_unit = "C"
+        message.payload.precision = 0.1
+        message.payload.temp_step = 0.5
 
-        payload.current_temperature_topic = payload.state_topic
-        payload.current_temperature_template = "{%- if value_json.properties.currTemp is defined -%} {{ value_json.properties.currTemp }} {%- endif -%}"
+        message.payload.current_temperature_topic = message.payload.state_topic
+        message.payload.current_temperature_template = "{%- if value_json.properties.currTemp is defined -%} {{ value_json.properties.currTemp }} {%- endif -%}"
 
-        payload.modes = ["heat", "off"]
-        payload.mode_state_topic = payload.state_topic
-        payload.mode_state_template = "{%- if value_json.properties.setTemp is defined and value_json.properties.currTemp is defined -%} {%- if value_json.properties.setTemp > value_json.properties.currTemp -%} heat {%- else -%} off {%- endif -%} {%- else -%} off {%- endif -%}"
+        message.payload.modes = ["heat", "off"]
+        message.payload.mode_state_topic = message.payload.state_topic
+        message.payload.mode_state_template = "{%- if value_json.properties.setTemp is defined and value_json.properties.currTemp is defined -%} {%- if value_json.properties.setTemp > value_json.properties.currTemp -%} heat {%- else -%} off {%- endif -%} {%- else -%} off {%- endif -%}"
 
-        payload.preset_modes = self._settings.ClimatePresets
-        payload.preset_mode_command_topic = payload.command_topic
-        payload.preset_mode_command_template = '{"id": "' + entity.id + '", "type": "state", "properties": {"currRegime": "{{ value }}" }}'
-        payload.preset_mode_state_topic = payload.state_topic
-        payload.preset_mode_value_template = "{%- if value_json.properties.currRegime is defined -%} {{ value_json.properties.currRegime }} {%- endif -%}"
+        message.payload.preset_modes = self._settings.ClimatePresets
+        message.payload.preset_mode_command_topic = message.payload.command_topic
+        message.payload.preset_mode_command_template = '{"id": "' + entity.id + '", "type": "state", "properties": {"currRegime": "{{ value }}" }}'
+        message.payload.preset_mode_state_topic = message.payload.state_topic
+        message.payload.preset_mode_value_template = "{%- if value_json.properties.currRegime is defined -%} {{ value_json.properties.currRegime }} {%- endif -%}"
 
-        payload.temperature_command_topic = payload.command_topic
-        payload.temperature_command_template = '{"id": "' + entity.id + '", "type": "state", "properties": {"setTemp": {{ value }}}}'
-        payload.temperature_state_topic = payload.state_topic
-        payload.temperature_state_template = "{%- if value_json.properties.setTemp is defined -%} {{ value_json.properties.setTemp }} {%- endif -%}"
+        message.payload.temperature_command_topic = message.payload.command_topic
+        message.payload.temperature_command_template = '{"id": "' + entity.id + '", "type": "state", "properties": {"setTemp": {{ value }}}}'
+        message.payload.temperature_state_topic = message.payload.state_topic
+        message.payload.temperature_state_template = "{%- if value_json.properties.setTemp is defined -%} {{ value_json.properties.setTemp }} {%- endif -%}"
 
-        #payload.swing_modes = []
+        #message.payload.swing_modes = []
+    
+        return message
+
+
+    def _onoff_as_binarysensor(self, entity: QbusConfigEntity) -> bool:
+        for bs in self._settings.BinarySensors:
+            if bs.upper() in [entity.refId, entity.id, entity.name.upper()]:
+                return True
+            
+        return False

@@ -5,7 +5,7 @@ import socket
 
 
 class Settings:
-    _VERSION = "v0.4.0"
+    _VERSION = "v0.5.0"
 
 
     def __new__(cls):
@@ -52,6 +52,14 @@ class Settings:
 
         climate_presets = os.environ.get("CLIMATE_PRESETS", "MANUEEL,VORST,NACHT,ECONOMY,COMFORT").split(",")
         self._climate_presets: list[str] = [x for x in climate_presets if x.strip()]
+
+        binary_sensors = os.environ.get("BINARY_SENSORS", "").split(",")
+        self._binary_sensors: list[str] = [x for x in binary_sensors if x.strip()]
+
+
+    @property
+    def BinarySensors(self) -> list[str]:
+        return self._binary_sensors
 
 
     @property
