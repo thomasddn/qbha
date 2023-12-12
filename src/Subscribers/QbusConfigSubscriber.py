@@ -284,7 +284,12 @@ class QbusConfigSubscriber(Subscriber):
 
     def _onoff_as_binarysensor(self, entity: QbusConfigEntity) -> bool:
         for bs in self._settings.BinarySensors:
-            if bs.upper() in [entity.refId, entity.id, entity.name.upper()]:
+            bs = bs.upper()
+
+            if (bs == entity.id or 
+                bs == entity.name.upper() or 
+                bs == entity.refId or 
+                bs == self._parseRefId(entity.refId)):
                 return True
             
         return False
