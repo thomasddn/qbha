@@ -81,7 +81,7 @@ Check the wiki for more examples.
 | MQTT_PORT | N | 1883 | The port of the MQTT broker. |
 | MQTT_USER | N | \<empty> | The username to connect to the MQTT broker. |
 | MQTT_PWD | N | \<empty> | The password to connect to the MQTT broker. |
-| BINARY_SENSORS | N | \<empty> | Comma separated list of on/off entities to be created as binary sensors. You can use either the Qbus `id`, `refId` or `name` to define an on/off entity. |
+| BINARY_SENSORS | N | \<empty> | Comma separated list of on/off entities to be created as binary sensors. You can use either the Qbus `id`, (parsed) `refId` or `name` to define an on/off entity. |
 | CLIMATE_PRESETS | N | MANUEEL, VORST, NACHT, ECONOMY, COMFORT | Comma separated list of climate presets you want to have available in HA. Also useful if your controller is set to another language. Applies to all climate entities. |
 | CLIMATE_SENSORS | N | False | Create sensors for climate entities, having the current temperature as state. |
 | QBUS_CAPTURE | N | False | Log all Qbus topic messages to a file, regardless of LOG_LEVEL. Used for debugging purposes. |
