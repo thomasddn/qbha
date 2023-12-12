@@ -9,4 +9,6 @@ class HomeAssistantPayload(BaseModel):
     object_id: str = None
     command_topic: str = None
     state_topic: str = None
+    json_attributes_topic: str = None
+    json_attributes_template: str = None
     device: HomeAssistantDevice = None

@@ -5,6 +5,7 @@
 ### Added
 
 - Option to create binary sensors for certain switch entities (#3)
+- Informational attributes
 
 ## [0.4.0] - 2023-11-21
 
