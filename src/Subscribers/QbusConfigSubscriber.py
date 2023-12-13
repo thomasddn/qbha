@@ -150,7 +150,7 @@ class QbusConfigSubscriber(Subscriber):
         payload.device = device
         payload.state_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/state"
         payload.json_attributes_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/state"
-        payload.json_attributes_template = '{ "controller_id": "' + controller.id + '", "entity_id": "{{ value_json.id }}" }'
+        payload.json_attributes_template = '{ "controller_id": "' + controller.id + '", "entity_id": "{{ value_json.id }}", "ref_id": "' + refId + '" }'
 
         if domain and not domain.endswith("sensor"):
             payload.command_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/setState"
