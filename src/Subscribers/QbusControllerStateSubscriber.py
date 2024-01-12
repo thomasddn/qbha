@@ -7,7 +7,7 @@ from Subscribers.Subscriber import Subscriber
 
 class QbusControllerStateSubscriber(Subscriber):
     _logger = logging.getLogger("qbha." + __name__)
-    _requested: bool = False
+    _requested: list[str] = []
     
 
     def __init__(self) -> None:
@@ -22,8 +22,8 @@ class QbusControllerStateSubscriber(Subscriber):
 
         state = self._type_adapter.validate_json(msg.payload)
 
-        if self._requested == False and state.properties and state.properties.connectable == False:
-            self._logger.info(f"Requesting controller firmware update.")
-            self._requested = True
+        if state.properties and state.properties.connectable == False and state.id not in self._requested:
+            self._logger.info(f"Activating controller {state.id}.")
+            self._requested.append(state.id)
             payload = '{"id": "' + state.id + '", "type": "action", "action": "activate", "properties": { "authKey": "ubielite" } }'
             client.publish(f"cloudapp/QBUSMQTTGW/{state.id}/setState", payload)

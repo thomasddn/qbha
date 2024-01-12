@@ -5,7 +5,7 @@ import socket
 
 
 class Settings:
-    _VERSION = "v0.5.0"
+    _VERSION = "v0.6.0"
 
 
     def __new__(cls):

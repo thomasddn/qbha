@@ -20,6 +20,7 @@ The application runs as a Docker container. It is also available as a Home Assis
 - Climate entity in Home Assistant reflects current temperature, requested temperature and preset, regardless of whether you change the temperature by preset or manually.
 - Climate entity in Home Assistant automatically sets its mode to either `heat` or `off`.
 - When Home Assistant restarts, all Qbus entities will report their current state.
+- Supports multiple controllers.
 
 ### Customizations
 
