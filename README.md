@@ -48,6 +48,7 @@ All customizations are optional.
   - Docker version: thomasddn/qbusmqtt ([Docker Hub](https://hub.docker.com/r/thomasddn/qbusmqtt) | [source](https://github.com/thomasddn/qbusmqtt))
   - Bare metal: https://github.com/QbusKoen/qbusMqtt. Be sure to only install the gateway (qbusMqttGw) and optionally Mosquitto. You can also use an [installer script](https://github.com/QbusKoen/QbusMqtt-installer).
 - MQTT broker (e.g. https://hub.docker.com/_/eclipse-mosquitto).
+- Home Assistant MQTT integration (https://www.home-assistant.io/integrations/mqtt/)
 
 ### Installation
 

@@ -101,9 +101,9 @@ class QbusConfigSubscriber(Subscriber):
 
         match entityType:
             case "analog":
-                return self._create_analog_message(entity, controller)
+                return self._create_light_message(entity, controller)
             case "onoff":
-                onoff_message = self._create_onoff_message(entity, controller)
+                onoff_message = self._create_switch_message(entity, controller)
                 binarysensor_message = self._create_binarysensor_message(entity, controller)
 
                 if self._onoff_as_binarysensor(entity):
@@ -116,9 +116,9 @@ class QbusConfigSubscriber(Subscriber):
             case "scene":
                 return self._create_scene_message(entity, controller)
             case "shutter":
-                return self._create_shutter_message(entity, controller)
+                return self._create_cover_message(entity, controller)
             case "thermo":
-                thermo_message = self._create_thermo_message(entity, controller)
+                thermo_message = self._create_climate_message(entity, controller)
                 climatesensor_message = self._create_climatesensor_message(entity, controller)
 
                 if not self._settings.ClimateSensors:
@@ -176,7 +176,7 @@ class QbusConfigSubscriber(Subscriber):
         return None
     
 
-    def _create_analog_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+    def _create_light_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller)
         message.payload.schema = "template"
         message.payload.brightness_template = "{{ value_json.properties.value | float | multiply(2.55) | round(0) }}"
@@ -187,7 +187,7 @@ class QbusConfigSubscriber(Subscriber):
         return message
     
 
-    def _create_onoff_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+    def _create_switch_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller)
         message.payload.payload_on = '{"id": "' + entity.id + '", "type": "state", "properties": {"value": true}}'
         message.payload.payload_off = '{"id": "' + entity.id + '", "type": "state", "properties": {"value": false}}'
@@ -222,7 +222,7 @@ class QbusConfigSubscriber(Subscriber):
         return message
     
 
-    def _create_shutter_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+    def _create_cover_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller)
 
         if (entity.properties.get("state") != None):
@@ -253,7 +253,7 @@ class QbusConfigSubscriber(Subscriber):
         return message
     
 
-    def _create_thermo_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+    def _create_climate_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller)
         message.payload.temperature_unit = "C"
         message.payload.precision = 0.1
@@ -279,6 +279,11 @@ class QbusConfigSubscriber(Subscriber):
 
         #message.payload.swing_modes = []
     
+        return message
+
+
+    def _create_humidity_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+        message = self._create_base_message(entity, controller)
         return message
 
 
