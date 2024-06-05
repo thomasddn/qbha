@@ -310,15 +310,14 @@ class QbusConfigSubscriber(Subscriber):
         message = self._create_base_message(entity, controller)
 
         message.payload.value_template = "{{ value_json['properties']['currentValue'] }}"
-        message.payload.unit_of_measurement =  entity.properties.get("currentValue").get("unit")
+        message.payload.unit_of_measurement = entity.properties.get("currentValue").get("unit")
         message.payload.device_class = self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant)
         message.payload.suggested_display_precision = 2
 
-        # Interpret state class based on name. 
-        # Another option would be to assume kWh is always a total value, otherwise it's a live measurement
-        if "LQS El. Totaal" in entity.name or "LQS El. Dag" in entity.name or "LQS El. Nacht" in entity.name:
-            message.payload.state_class = "total"
-        else:
-            message.payload.state_class = "measurement"
+        match message.payload.unit_of_measurement:
+            case "kWh":
+              message.payload.state_class = "total"
+            case _:
+              message.payload.state_class = "measurement"
 
         return message
