@@ -17,7 +17,8 @@ from Subscribers.Subscriber import Subscriber
 
 class QbusConfigSubscriber(Subscriber):
     _REFID_REGEX = r"^\d+\/(\d+(?:\/\d+)?)$"
-    _HA_TYPE_MAP = { "analog": "light", "onoff": "switch", "scene": "scene", "shutter": "cover", "thermo": "climate" }
+    _HA_TYPE_MAP = { "analog": "light", "onoff": "switch", "scene": "scene", "shutter": "cover", "thermo": "climate", "gauge": "sensor" }
+    _SUPPORTED_GAUGE_VARIANTS = { "Energy": "energy","Power": "power", "Current": "current", "Voltage": "voltage"}
 
     _logger = logging.getLogger("qbha." + __name__)
     _settings = Settings()
@@ -125,6 +126,12 @@ class QbusConfigSubscriber(Subscriber):
                     climatesensor_message.payload = None
 
                 return [thermo_message, climatesensor_message]
+            case "gauge":
+                if not self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant):
+                    self._logger.warn(f"Gauge with variant '{entity.variant}' not (yet) supported.")
+                    return None
+                 
+                return self._create_sensor_message(entity, controller)
     
         return None
 
@@ -298,3 +305,20 @@ class QbusConfigSubscriber(Subscriber):
                 return True
             
         return False
+    
+    def _create_sensor_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+        message = self._create_base_message(entity, controller)
+
+        message.payload.value_template = "{{ value_json['properties']['currentValue'] }}"
+        message.payload.unit_of_measurement =  entity.properties.get("currentValue").get("unit")
+        message.payload.device_class = self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant)
+        message.payload.suggested_display_precision = 2
+
+        # Interpret state class based on name. 
+        # Another option would be to assume kWh is always a total value, otherwise it's a live measurement
+        if "LQS El. Totaal" in entity.name or "LQS El. Dag" in entity.name or "LQS El. Nacht" in entity.name:
+            message.payload.state_class = "total"
+        else:
+            message.payload.state_class = "measurement"
+
+        return message
