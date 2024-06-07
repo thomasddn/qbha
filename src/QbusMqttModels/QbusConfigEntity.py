@@ -7,6 +7,7 @@ class QbusConfigEntity(BaseModel):
     name: str = None
     originalName: str = None
     refId: str = None
-    type: str = None
+    type: str = None,
+    variant: str | None = None,
     actions: dict = {}
     properties: dict = {}

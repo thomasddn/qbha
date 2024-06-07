@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.0] - 2024-01-12
+
+### Added
+
+- Added support for Luqas and gauges of variant Power, Energy, Current, Voltage. Gauges with unit 'kWh' are considered to be totals.
+
 ## [0.6.0] - 2024-01-12
 
 ### Added
