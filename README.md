@@ -21,6 +21,7 @@ The application runs as a Docker container. It is also available as a Home Assis
 - Climate entity in Home Assistant automatically sets its mode to either `heat` or `off`.
 - When Home Assistant restarts, all Qbus entities will report their current state.
 - Supports multiple controllers.
+- Supports Luqas P1 meter gauges.
 
 ### Customizations
 
@@ -35,10 +36,11 @@ All customizations are optional.
 | Qbus | Home Assistant |
 | --- | --- |
 | Dimmer | Light |
-| On/Off | Switch |
+| On/Off | Switch (or Binary sensor) |
 | Shutter | Cover |
 | Thermostat | Climate (heating only) |
 | Scene | Scene |
+| Gauge | Sensor |
 
 ## Setup
 
