@@ -1,10 +1,10 @@
 # Changelog
 
-## [0.7.0] - 2024-01-12
+## [0.7.0] - 2024-06-07
 
 ### Added
 
-- Added support for Luqas and gauges of variant Power, Energy, Current, Voltage. Gauges with unit 'kWh' are considered to be totals.
+- Added support for Luqas and gauges of variant Power, Energy, Current, Voltage. Gauges with unit 'kWh' are considered to be totals. (#5 by @mathiasbl)
 
 ## [0.6.0] - 2024-01-12
 
@@ -72,7 +72,8 @@
 
 
 
-[Unreleased]: https://github.com/thomasddn/qbha/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/thomasddn/qbha/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/thomasddn/qbha/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/thomasddn/qbha/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/thomasddn/qbha/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/thomasddn/qbha/compare/v0.3.0...v0.4.0
