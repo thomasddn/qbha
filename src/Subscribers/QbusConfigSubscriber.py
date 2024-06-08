@@ -17,8 +17,15 @@ from Subscribers.Subscriber import Subscriber
 
 class QbusConfigSubscriber(Subscriber):
     _REFID_REGEX = r"^\d+\/(\d+(?:\/\d+)?)$"
-    _HA_TYPE_MAP = { "analog": "light", "onoff": "switch", "scene": "scene", "shutter": "cover", "thermo": "climate", "gauge": "sensor" }
-    _SUPPORTED_GAUGE_VARIANTS = { "Energy": "energy","Power": "power", "Current": "current", "Voltage": "voltage"}
+    _HA_TYPE_MAP = {"analog": "light", "onoff": "switch", "scene": "scene", "shutter": "cover", "thermo": "climate", "gauge": "sensor"}
+    _SUPPORTED_GAUGE_VARIANTS = {
+        "Current": "current",
+        "Energy": "energy",
+        "Power": "power",
+        "Temperature": "temperature",
+        "Voltage": "voltage",
+        "Water": "water"
+    }
 
     _logger = logging.getLogger("qbha." + __name__)
     _settings = Settings()
@@ -32,10 +39,10 @@ class QbusConfigSubscriber(Subscriber):
     def process(self, client: mqtt.Client, msg: mqtt.MQTTMessage) -> None:
         if len(msg.payload) <= 0:
             return
-        
+
         config = self._type_adapter.validate_json(msg.payload)
         totalEntities = 0
-        
+
         # Assure entity
         for controller in config.devices:
             totalEntities += len(controller.functionBlocks)
@@ -43,11 +50,11 @@ class QbusConfigSubscriber(Subscriber):
         if totalEntities <= 0:
             return
 
-        self._logger.info(f"New Qbus config, updating Home Assistant entities.")
+        self._logger.info("New Qbus config, updating Home Assistant entities.")
 
         # Save qbus configuration in file
         QbusConfigService.save(msg.payload, config)
-        
+
         # Create HA entities
         entityIds, messages = self._create_homeassistant_messages()
 
@@ -127,19 +134,19 @@ class QbusConfigSubscriber(Subscriber):
 
                 return [thermo_message, climatesensor_message]
             case "gauge":
-                if not self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant):
+                if isinstance(entity.variant, list) or not self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant):
                     self._logger.warn(f"Gauge with variant '{entity.variant}' not (yet) supported.")
                     return None
-                 
+
                 return self._create_sensor_message(entity, controller)
-    
+
         return None
 
 
     def _create_base_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice, domain: str = None, id_suffix: str = "") -> HomeAssistantMessage:
         refId = self._parseRefId(entity.refId)
         uniqueId = f"qbus_{controller.id}_{refId}{id_suffix}"
-        
+
         if domain is None or domain == "":
             domain = self._HA_TYPE_MAP[entity.type]
 
@@ -179,9 +186,9 @@ class QbusConfigSubscriber(Subscriber):
 
             if refId:
                 return refId.replace("/", "-")
-            
+
         return None
-    
+
 
     def _create_light_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller)
@@ -190,9 +197,9 @@ class QbusConfigSubscriber(Subscriber):
         message.payload.command_off_template = '{"id": "' + entity.id + '", "type": "state", "properties": {"value": 0}}'
         message.payload.command_on_template = '{%- if brightness is defined -%} {"id": "' + entity.id + '", "type": "state", "properties": {"value":{{brightness | float | multiply(0.39215686) | round(0)}}}} {%- else -%} {"id": "' + entity.id + '", "type": "state", "properties": {"value":100}} {%- endif -%} }'
         message.payload.state_template = '{% if value_json.properties.value > 0 %} on {% else %} off {% endif %}'
-    
+
         return message
-    
+
 
     def _create_switch_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller)
@@ -201,7 +208,7 @@ class QbusConfigSubscriber(Subscriber):
         message.payload.value_template = "{{ value_json['properties']['value'] }}"
         message.payload.state_on = True
         message.payload.state_off = False
-    
+
         return message
 
 
@@ -218,16 +225,16 @@ class QbusConfigSubscriber(Subscriber):
         message.payload.device_class = "temperature"
         message.payload.unit_of_measurement = "°C"
         message.payload.value_template = "{%- if value_json.properties.currTemp is defined -%} {{ value_json.properties.currTemp }} {%- endif -%}"
-    
+
         return message
 
 
     def _create_scene_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller)
         message.payload.payload_on = '{"id":"' + entity.id + '", "type": "action", "action": "active"}'
-    
+
         return message
-    
+
 
     def _create_cover_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller)
@@ -256,9 +263,9 @@ class QbusConfigSubscriber(Subscriber):
             message.payload.position_topic = message.payload.state_topic
             message.payload.set_position_template = '{%- if position is defined -%} {"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition":{{position| float | round(0)}}}} {%- else -%} {"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition":100}} {%- endif -%} }'
             message.payload.set_position_topic = message.payload.command_topic
-    
+
         return message
-    
+
 
     def _create_climate_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller)
@@ -285,7 +292,7 @@ class QbusConfigSubscriber(Subscriber):
         message.payload.temperature_state_template = "{%- if value_json.properties.setTemp is defined -%} {{ value_json.properties.setTemp }} {%- endif -%}"
 
         #message.payload.swing_modes = []
-    
+
         return message
 
 
@@ -294,30 +301,39 @@ class QbusConfigSubscriber(Subscriber):
         return message
 
 
-    def _onoff_as_binarysensor(self, entity: QbusConfigEntity) -> bool:
-        for bs in self._settings.BinarySensors:
-            bs = bs.upper()
-
-            if (bs == entity.id or 
-                bs == entity.name.upper() or 
-                bs == entity.refId or 
-                bs == self._parseRefId(entity.refId)):
-                return True
-            
-        return False
-    
     def _create_sensor_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller)
 
+        variant = self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant)
+        unit = entity.properties.get("currentValue").get("unit")
+
+        if variant == "water" and unit == "l":
+            unit = unit.upper()
+
         message.payload.value_template = "{{ value_json['properties']['currentValue'] }}"
-        message.payload.unit_of_measurement = entity.properties.get("currentValue").get("unit")
-        message.payload.device_class = self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant)
+        message.payload.unit_of_measurement = unit
+        message.payload.device_class = variant
         message.payload.suggested_display_precision = 2
 
         match message.payload.unit_of_measurement:
             case "kWh":
-              message.payload.state_class = "total"
+                message.payload.state_class = "total"
+            case "L":
+                message.payload.state_class = "total"
             case _:
-              message.payload.state_class = "measurement"
+                message.payload.state_class = "measurement"
 
         return message
+
+
+    def _onoff_as_binarysensor(self, entity: QbusConfigEntity) -> bool:
+        for bs in self._settings.BinarySensors:
+            bs = bs.upper()
+
+            if (bs == entity.id or
+                bs == entity.name.upper() or
+                bs == entity.refId or
+                bs == self._parseRefId(entity.refId)):  # noqa: E129
+                return True
+
+        return False
