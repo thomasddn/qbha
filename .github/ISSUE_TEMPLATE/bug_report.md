@@ -3,7 +3,7 @@ name: Bug report
 about: Create a report to help us improve
 title: ''
 labels: bug
-assignees: ''
+assignees: thomasddn
 
 ---
 
@@ -23,11 +23,13 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**QBHA version:**
+**QBHA version and installation type:**
 v0.1.0
+docker / HA add-on
 
-**Qbus MQTT version:**
-docker v0.1.0 / bare metal
+**Qbus MQTT version and installation type:**
+v0.1.0 
+docker / HA add-on / bare metal
 
 **Home Assistant:**
 Installation type: docker / HAOS / ...
