@@ -24,7 +24,8 @@ class QbusConfigSubscriber(Subscriber):
         "Power": "power",
         "Temperature": "temperature",
         "Voltage": "voltage",
-        "Water": "water"
+        "Water": "water",
+        "Volume": "volume_storage"
     }
 
     _logger = logging.getLogger("qbha." + __name__)
@@ -307,7 +308,7 @@ class QbusConfigSubscriber(Subscriber):
         variant = self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant)
         unit = entity.properties.get("currentValue").get("unit")
 
-        if variant == "water" and unit == "l":
+        if (variant == "water" or variant == "volume_storage") and unit == "l":
             unit = unit.upper()
 
         message.payload.value_template = "{{ value_json['properties']['currentValue'] }}"
