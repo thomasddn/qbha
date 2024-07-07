@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2] - 2024-06-28
+
+### Added
+
+- Support for volume storage (#7 by @mathiasbl)
+
+
 ## [0.7.1] - 2024-06-08
 
 ### Fixed
