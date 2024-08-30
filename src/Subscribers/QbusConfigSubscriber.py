@@ -135,7 +135,7 @@ class QbusConfigSubscriber(Subscriber):
 
                 return [thermo_message, climatesensor_message]
             case "gauge":
-                if isinstance(entity.variant, list) or not self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant):
+                if isinstance(entity.variant, (list, tuple)) or not self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant):
                     self._logger.warn(f"Gauge with variant '{entity.variant}' not (yet) supported.")
                     return None
 
