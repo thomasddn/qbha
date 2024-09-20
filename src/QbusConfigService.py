@@ -12,7 +12,7 @@ class QbusConfigService(object):
     _config: QbusConfig = None
     _settings = Settings()
     _logger = logging.getLogger("qbha." + __name__)
-    
+
 
     @staticmethod
     def save(source: bytes | bytearray, config: QbusConfig) -> None:
@@ -35,8 +35,8 @@ class QbusConfigService(object):
                     config = file.read()
                     __class__._config = TypeAdapter(QbusConfig).validate_json(config)
             else:
-                __class__._logger.warn("File 'qbusconfig.json' does not exist. Try to restart the Qbus MQTT service.")
-        
+                __class__._logger.warning("File 'qbusconfig.json' does not exist. Try to restart the Qbus MQTT service.")
+
         return __class__._config
 
 
@@ -69,5 +69,5 @@ class QbusConfigService(object):
         for entity in __class__.get_entities():
             if entity.id == id:
                 return entity
-        
+
         return None

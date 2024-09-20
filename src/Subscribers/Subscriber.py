@@ -6,7 +6,7 @@ class Subscriber:
     def __init__(self) -> None:
         self.topic: str
         self.qos: int = 2
-        
+
         atexit.register(self.close)
 
 
@@ -25,10 +25,10 @@ class Subscriber:
     def _is_match(self, topic: str, subscription: str) -> bool:
         if topic is None or subscription is None:
             return False
-        
+
         if topic == subscription:
             return True
-        
+
         if subscription == "#":
             return True
 
@@ -42,13 +42,13 @@ class Subscriber:
 
         if topic_parts_count < subscription_parts_count:
             return False
-        
+
         for i in range(subscription_parts_count):
             subscription_token = subscription_parts[i]
 
             if subscription_token == "#":
                 return True
-            
+
             if subscription_token == "+":
                 continue
 
@@ -56,7 +56,7 @@ class Subscriber:
                 continue
             else:
                 return False
-        
+
         # It's a match if both have the same length! If subscription ends
-        # with a '#' it would have returned True already in the for loop. 
+        # with a '#' it would have returned True already in the for loop.
         return topic_parts_count == subscription_parts_count

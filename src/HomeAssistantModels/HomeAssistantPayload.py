@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from HomeAssistantModels.HomeAssistantDevice import HomeAssistantDevice
 
+
 class HomeAssistantPayload(BaseModel):
     model_config = ConfigDict(extra='allow')
 

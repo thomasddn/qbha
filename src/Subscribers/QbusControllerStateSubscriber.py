@@ -8,7 +8,7 @@ from Subscribers.Subscriber import Subscriber
 class QbusControllerStateSubscriber(Subscriber):
     _logger = logging.getLogger("qbha." + __name__)
     _requested: list[str] = []
-    
+
 
     def __init__(self) -> None:
         super().__init__()
@@ -22,7 +22,7 @@ class QbusControllerStateSubscriber(Subscriber):
 
         state = self._type_adapter.validate_json(msg.payload)
 
-        if state.properties and state.properties.connectable == False and state.id not in self._requested:
+        if state.properties and state.properties.connectable is False and state.id not in self._requested:
             self._logger.info(f"Activating controller {state.id}.")
             self._requested.append(state.id)
             payload = '{"id": "' + state.id + '", "type": "action", "action": "activate", "properties": { "authKey": "ubielite" } }'

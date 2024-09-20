@@ -23,13 +23,13 @@ def configure_logging():
     #     def filter(record):
     #         return record.levelno < logging.ERROR
 
-    #logging.basicConfig(level=settings.LogLevel)
+    # logging.basicConfig(level=settings.LogLevel)
     formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s - %(message)s')
 
     default_handler = logging.StreamHandler(sys.stdout)
     default_handler.setLevel(settings.LogLevel)
     default_handler.setFormatter(formatter)
-    #default_handler.addFilter(NoErrorFilter)
+    # default_handler.addFilter(NoErrorFilter)
 
     error_handler = logging.StreamHandler(sys.stderr)
     error_handler.setLevel(logging.ERROR)
@@ -63,17 +63,19 @@ if __name__ == '__main__':
 
     mqtt_client: mqtt.Client = None
     subscribers: list[Subscriber] = []
-    
+
     try:
         mqtt_client = mqtt.Client(f"qbha-{settings.Hostname}")
 
         if settings.QbusCapture:
             subscribers.append(QbusCaptureSubscriber())
 
-        subscribers.extend([HomeAssistantStatusSubscriber(),
+        subscribers.extend([
+            HomeAssistantStatusSubscriber(),
             QbusConfigSubscriber(),
             QbusControllerStateSubscriber(),
-            QbusEntityStateSubscriber(mqtt_client)])
+            QbusEntityStateSubscriber(mqtt_client)
+        ])
 
         qbha = Qbha(mqtt_client, subscribers)
         qbha.start()

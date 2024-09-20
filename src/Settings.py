@@ -11,9 +11,9 @@ class Settings:
     def __new__(cls):
         if not hasattr(cls, 'instance'):
             cls.instance = super(Settings, cls).__new__(cls)
-        
+
         return cls.instance
-      
+
 
     def __init__(self) -> None:
         # Docker

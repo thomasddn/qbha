@@ -17,15 +17,22 @@ from Subscribers.Subscriber import Subscriber
 
 class QbusConfigSubscriber(Subscriber):
     _REFID_REGEX = r"^\d+\/(\d+(?:\/\d+)?)$"
-    _HA_TYPE_MAP = {"analog": "light", "onoff": "switch", "scene": "scene", "shutter": "cover", "thermo": "climate", "gauge": "sensor"}
+    _HA_TYPE_MAP = {
+        "analog": "light",
+        "gauge": "sensor",
+        "onoff": "switch",
+        "scene": "scene",
+        "shutter": "cover",
+        "thermo": "climate",
+    }
     _SUPPORTED_GAUGE_VARIANTS = {
         "Current": "current",
         "Energy": "energy",
         "Power": "power",
         "Temperature": "temperature",
         "Voltage": "voltage",
+        "Volume": "volume_storage",
         "Water": "water",
-        "Volume": "volume_storage"
     }
 
     _logger = logging.getLogger("qbha." + __name__)
@@ -105,12 +112,18 @@ class QbusConfigSubscriber(Subscriber):
         entityType = entity.type.lower()
 
         if not self._HA_TYPE_MAP.get(entityType):
-            self._logger.warn(f"Entity type '{entityType}' not (yet) supported.")
+            self._logger.warning(f"Entity type '{entityType}' not (yet) supported.")
             return None
 
         match entityType:
             case "analog":
                 return self._create_light_message(entity, controller)
+            case "gauge":
+                if isinstance(entity.variant, (list, tuple)) or not self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant):
+                    self._logger.warning(f"Gauge with variant '{entity.variant}' not (yet) supported.")
+                    return None
+
+                return self._create_sensor_message(entity, controller)
             case "onoff":
                 onoff_message = self._create_switch_message(entity, controller)
                 binarysensor_message = self._create_binarysensor_message(entity, controller)
@@ -134,12 +147,6 @@ class QbusConfigSubscriber(Subscriber):
                     climatesensor_message.payload = None
 
                 return [thermo_message, climatesensor_message]
-            case "gauge":
-                if isinstance(entity.variant, (list, tuple)) or not self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant):
-                    self._logger.warn(f"Gauge with variant '{entity.variant}' not (yet) supported.")
-                    return None
-
-                return self._create_sensor_message(entity, controller)
 
         return None
 
@@ -240,7 +247,7 @@ class QbusConfigSubscriber(Subscriber):
     def _create_cover_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller)
 
-        if (entity.properties.get("state") != None):
+        if (entity.properties.get("state") is not None):
             message.payload.payload_close = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "down"}}'
             message.payload.payload_open = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "up"}}'
             message.payload.payload_stop = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "stop"}}'
@@ -248,7 +255,7 @@ class QbusConfigSubscriber(Subscriber):
             message.payload.state_opening = "up"
             message.payload.state_stopped = "stop"
             message.payload.value_template = "{{ value_json['properties']['state'] }}"
-            #payload.optimistic = true
+            # payload.optimistic = true
         else:
             message.payload.payload_close = '{"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition": 0}}'
             message.payload.payload_open = '{"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition": 100}}'
@@ -257,7 +264,7 @@ class QbusConfigSubscriber(Subscriber):
             message.payload.state_opening = "up"
             message.payload.state_stopped = "stop"
             message.payload.value_template = "{{ value_json['properties']['shutterPosition'] }}"
-            #message.payload.optimistic = true
+            # message.payload.optimistic = true
             message.payload.position_closed = 0
             message.payload.position_open = 100
             message.payload.position_template = "{{ value_json['properties']['shutterPosition'] }}"
@@ -292,7 +299,7 @@ class QbusConfigSubscriber(Subscriber):
         message.payload.temperature_state_topic = message.payload.state_topic
         message.payload.temperature_state_template = "{%- if value_json.properties.setTemp is defined -%} {{ value_json.properties.setTemp }} {%- endif -%}"
 
-        #message.payload.swing_modes = []
+        # message.payload.swing_modes = []
 
         return message
 

@@ -7,7 +7,7 @@ import paho.mqtt.client as mqtt
 
 class HomeAssistantStatusSubscriber(Subscriber):
     _logger = logging.getLogger("qbha." + __name__)
-    
+
     def __init__(self) -> None:
         super().__init__()
         self.topic = "homeassistant/status"
@@ -17,7 +17,7 @@ class HomeAssistantStatusSubscriber(Subscriber):
         if msg.payload.decode() != "online":
             return
 
-        self._logger.info(f"Home Assistant came online, refreshing Qbus states.")
+        self._logger.info("Home Assistant came online, refreshing Qbus states.")
 
         # Gather IDs to retrieve state for
         states = []

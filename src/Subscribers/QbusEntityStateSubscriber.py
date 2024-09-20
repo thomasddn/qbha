@@ -37,20 +37,20 @@ class QbusEntityStateSubscriber(Subscriber):
         # Skip if not an event
         if payload.type != "event":
             return
-        
+
         # Find entity
         entity = QbusConfigService.find_entity_by_id(payload.id)
 
         if entity is None or entity.type != "thermo":
             return
-        
+
         # Add to queue
         self._items.put(entity.id)
 
 
     def close(self) -> None:
         self._kill.set()
-    
+
 
     def _process_queue(self) -> None:
         self._kill.wait(self._WAIT_TIME)
@@ -72,7 +72,7 @@ class QbusEntityStateSubscriber(Subscriber):
             if len(entity_ids) > 0:
                 self._logger.debug(f"Requesting state for thermostat {entity_ids}.")
                 self.mqtt_client.publish("cloudapp/QBUSMQTTGW/getState", json.dumps(entity_ids))
-            
+
             # If no kill signal is set, sleep for the interval.
             # If kill signal comes in while sleeping, immediately wake up and handle.
             is_killed = self._kill.wait(self._WAIT_TIME)
@@ -80,4 +80,4 @@ class QbusEntityStateSubscriber(Subscriber):
             if is_killed:
                 break
 
-        self._logger.debug(f"Killing thread.")
+        self._logger.debug("Killing thread.")

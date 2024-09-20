@@ -6,4 +6,3 @@ class HomeAssistantMessage:
     qos: int = 0
     retain: bool = False
     payload: HomeAssistantPayload = None
-
