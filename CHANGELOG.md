@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0] - 2024-09-29
+
+### Added
+
+- Add support for ventilation CO2 sensor (#9)
+- Make boot order with qbusmqtt irrelevant
+
+
 ## [0.7.3] - 2024-08-30
 
 ### Fixed
@@ -94,7 +102,8 @@
 
 
 
-[Unreleased]: https://github.com/thomasddn/qbha/compare/v0.7.3...HEAD
+[Unreleased]: https://github.com/thomasddn/qbha/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/thomasddn/qbha/compare/v0.7.3...v0.8.0
 [0.7.3]: https://github.com/thomasddn/qbha/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/thomasddn/qbha/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/thomasddn/qbha/compare/v0.7.0...v0.7.1
