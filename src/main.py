@@ -11,6 +11,7 @@ from Subscribers.QbusCaptureSubscriber import QbusCaptureSubscriber
 from Subscribers.QbusConfigSubscriber import QbusConfigSubscriber
 from Subscribers.QbusControllerStateSubscriber import QbusControllerStateSubscriber
 from Subscribers.QbusEntityStateSubscriber import QbusEntityStateSubscriber
+from Subscribers.QbusGatewayStateSubscriber import QbusGatewayStateSubscriber
 from Subscribers.Subscriber import Subscriber
 
 
@@ -74,7 +75,8 @@ if __name__ == '__main__':
             HomeAssistantStatusSubscriber(),
             QbusConfigSubscriber(),
             QbusControllerStateSubscriber(),
-            QbusEntityStateSubscriber(mqtt_client)
+            QbusEntityStateSubscriber(mqtt_client),
+            QbusGatewayStateSubscriber(),
         ])
 
         qbha = Qbha(mqtt_client, subscribers)
