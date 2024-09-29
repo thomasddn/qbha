@@ -19,6 +19,7 @@ class MqttMessageFactory:
         "scene",
         "shutter",
         "thermo",
+        "ventilation",
     ]
     _SUPPORTED_GAUGE_VARIANTS = {
         "Current": "current",
@@ -48,7 +49,7 @@ class MqttMessageFactory:
                     self._logger.warning(f"Gauge with variant '{entity.variant}' not (yet) supported.")
                     return None
 
-                return self._create_sensor_message(entity, controller)
+                return self._create_sensor_message_for_gauge(entity, controller)
             case "onoff":
                 onoff_message = self._create_switch_message(entity, controller)
                 binarysensor_message = self._create_binarysensor_message(entity, controller)
@@ -66,12 +67,18 @@ class MqttMessageFactory:
                 return self._create_cover_message(entity, controller)
             case "thermo":
                 thermo_message = self._create_climate_message(entity, controller)
-                climatesensor_message = self._create_climatesensor_message(entity, controller)
+                climatesensor_message = self._create_sensor_message_for_climate(entity, controller)
 
                 if not self._settings.ClimateSensors:
                     climatesensor_message.payload = None
 
                 return [thermo_message, climatesensor_message]
+            case "ventilation":
+                return (
+                    self._create_sensor_message_for_ventilation(entity, controller)
+                    if entity.properties.get("co2") is not None
+                    else None
+                )
 
         return None
 
@@ -150,11 +157,47 @@ class MqttMessageFactory:
         return message
 
 
-    def _create_climatesensor_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+    def _create_sensor_message_for_climate(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller, "sensor", "_temperature")
         message.payload.device_class = "temperature"
         message.payload.unit_of_measurement = "°C"
         message.payload.value_template = "{%- if value_json.properties.currTemp is defined -%} {{ value_json.properties.currTemp }} {%- endif -%}"
+
+        return message
+
+
+    def _create_sensor_message_for_gauge(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+        message = self._create_base_message(entity, controller, "sensor")
+
+        variant = self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant)
+        unit = entity.properties.get("currentValue").get("unit")
+
+        if (variant == "water" or variant == "volume_storage") and unit == "l":
+            unit = unit.upper()
+
+        message.payload.value_template = "{{ value_json['properties']['currentValue'] }}"
+        message.payload.unit_of_measurement = unit
+        message.payload.device_class = variant
+        message.payload.suggested_display_precision = 2
+
+        match message.payload.unit_of_measurement:
+            case "kWh":
+                message.payload.state_class = "total"
+            case "L":
+                message.payload.state_class = "total"
+            case _:
+                message.payload.state_class = "measurement"
+
+        return message
+
+
+    def _create_sensor_message_for_ventilation(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+        message = self._create_base_message(entity, controller, "sensor")
+        message.payload.value_template = "{{ value_json['properties']['co2'] }}"
+        message.payload.unit_of_measurement = entity.properties.get("co2").get("unit")
+        message.payload.device_class = "carbon_dioxide"
+        message.payload.suggested_display_precision = 0
+        message.payload.state_class = "measurement"
 
         return message
 
@@ -222,31 +265,6 @@ class MqttMessageFactory:
         message.payload.temperature_state_template = "{%- if value_json.properties.setTemp is defined -%} {{ value_json.properties.setTemp }} {%- endif -%}"
 
         # message.payload.swing_modes = []
-
-        return message
-
-
-    def _create_sensor_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
-        message = self._create_base_message(entity, controller, "sensor")
-
-        variant = self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant)
-        unit = entity.properties.get("currentValue").get("unit")
-
-        if (variant == "water" or variant == "volume_storage") and unit == "l":
-            unit = unit.upper()
-
-        message.payload.value_template = "{{ value_json['properties']['currentValue'] }}"
-        message.payload.unit_of_measurement = unit
-        message.payload.device_class = variant
-        message.payload.suggested_display_precision = 2
-
-        match message.payload.unit_of_measurement:
-            case "kWh":
-                message.payload.state_class = "total"
-            case "L":
-                message.payload.state_class = "total"
-            case _:
-                message.payload.state_class = "measurement"
 
         return message
 

@@ -10,13 +10,13 @@ The application runs as a Docker container. It is also available as a Home Assis
 ![Supports arm64 Architecture][arm64-shield]
 ![Supports i386 Architecture][i386-shield]
 
-## ❤️ Support this project
+## 🥤 Snack-fueled coding 
 
-If you enjoy this project, consider supporting its development by making a donation. Even a small contribution makes a big difference. Thank you for your support!
+You know what goes great with open-source coding? Snacks! If my project helped you out, maybe throw a little something my way so my potato chips and Coca-Cola stash doesn't run out!
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/N4N7UZ6KN)
 
-## Features
+## ✨ Features
 
 ### General
 
@@ -43,13 +43,14 @@ All customizations are optional.
 | Qbus | Home Assistant |
 | --- | --- |
 | Dimmer | Light |
+| Gauge | Sensor |
 | On/Off | Switch (or Binary sensor) |
+| Scene | Scene |
 | Shutter | Cover |
 | Thermostat | Climate (heating only) |
-| Scene | Scene |
-| Gauge | Sensor |
+| Ventilation | Sensor (CO2) |
 
-## Setup
+## 🛠️ Setup
 
 ### Prerequisites
 - Qbus home automation system (hardware).
@@ -102,11 +103,11 @@ Check the wiki for more examples.
 
 Optionally, you can mount the `/data` folder. It will contain log files and Qbus configuration files.
 
-## Credits
+## 💡 Credits
 
 This project was inspired by https://github.com/QbusKoen/qbusMqtt and https://github.com/wk275/qbTools-v2.
 
-## Remarks
+## 🗣️ Remarks
 :warning: This is **not** officially supported by Qbus.
 
 
