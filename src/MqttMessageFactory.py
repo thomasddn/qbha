@@ -211,31 +211,38 @@ class MqttMessageFactory:
 
     def _create_cover_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller, "cover")
+        message.payload.payload_stop = None
 
-        if (entity.properties.get("state") is not None):
+        if "state" in entity.properties:
+            message.payload.state_closing = "down"
+            message.payload.state_opening = "up"
             message.payload.payload_close = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "down"}}'
             message.payload.payload_open = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "up"}}'
-            message.payload.payload_stop = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "stop"}}'
-            message.payload.state_closing = "down"
-            message.payload.state_opening = "up"
-            message.payload.state_stopped = "stop"
             message.payload.value_template = "{{ value_json['properties']['state'] }}"
-            # payload.optimistic = true
-        else:
+            message.payload.optimistic = True
+
+        if "shutterStop" in entity.actions:
+            message.payload.state_stopped = "stop"
+            message.payload.payload_stop = '{"id": "' + entity.id + '", "type": "state", "properties": {"state": "stop"}}'
+
+        if "shutterPosition" in entity.properties:
             message.payload.payload_close = '{"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition": 0}}'
             message.payload.payload_open = '{"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition": 100}}'
-            message.payload.payload_stop = None
-            message.payload.state_closing = "down"
-            message.payload.state_opening = "up"
-            message.payload.state_stopped = "stop"
             message.payload.value_template = "{{ value_json['properties']['shutterPosition'] }}"
-            # message.payload.optimistic = true
             message.payload.position_closed = 0
             message.payload.position_open = 100
             message.payload.position_template = "{{ value_json['properties']['shutterPosition'] }}"
             message.payload.position_topic = message.payload.state_topic
-            message.payload.set_position_template = '{%- if position is defined -%} {"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition":{{position| float | round(0)}}}} {%- else -%} {"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition":100}} {%- endif -%} }'
+            message.payload.set_position_template = '{%- if position is defined -%} {"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition":{{position | float | round(0)}}}} {%- else -%} {"id": "' + entity.id + '", "type": "state", "properties": {"shutterPosition":100}} {%- endif -%} }'
             message.payload.set_position_topic = message.payload.command_topic
+
+        if "slatPosition" in entity.properties:
+            message.payload.tilt_closed_value = 0
+            message.payload.tilt_opened_value = 100
+            message.payload.tilt_status_template = "{{ value_json['properties']['slatPosition'] }}"
+            message.payload.tilt_status_topic = message.payload.state_topic
+            message.payload.tilt_command_template = '{%- if tilt_position is defined -%} {"id": "' + entity.id + '", "type": "state", "properties": {"slatPosition":{{tilt_position | float | round(0)}}}} {%- else -%} {"id": "' + entity.id + '", "type": "state", "properties": {"slatPosition":100}} {%- endif -%} }'
+            message.payload.tilt_command_topic = message.payload.command_topic
 
         return message
 
