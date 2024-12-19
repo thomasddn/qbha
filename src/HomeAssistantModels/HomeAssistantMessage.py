@@ -2,7 +2,7 @@ from HomeAssistantModels.HomeAssistantPayload import HomeAssistantPayload
 
 
 class HomeAssistantMessage:
-    topic: str = None
+    topic: str | None = None
     qos: int = 0
     retain: bool = False
-    payload: HomeAssistantPayload = None
+    payload: HomeAssistantPayload | None = None

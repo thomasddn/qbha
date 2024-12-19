@@ -8,28 +8,51 @@ from QbusMqttModels.QbusConfigDevice import QbusConfigDevice
 from QbusMqttModels.QbusConfigEntity import QbusConfigEntity
 from Settings import Settings
 
+_REF_ID_REGEX = re.compile(r"^\d+\/(\d+(?:\/\d+)?)$")
+_TO_SNAKE_CASE_REGEX = re.compile(r"(?<=[a-z0-9])([A-Z])")
+
+_SUPPORTED_OUTPUTS = [
+    "analog",
+    "gauge",
+    "onoff",
+    "scene",
+    "shutter",
+    "thermo",
+    "ventilation",
+]
+_SUPPORTED_GAUGE_VARIANTS = {
+    "Current": "current",
+    "Energy": "energy",
+    "Power": "power",
+    "Temperature": "temperature",
+    "Voltage": "voltage",
+    "Volume": "volume_storage",
+    "Water": "water",
+}
+_SUPPORTED_GAUGE_PROPERTIES = [
+    "consumptionValue",
+    "currentValue",
+]
+
+
+def _parse_ref_id(ref_id: str) -> str:
+    matches = re.findall(_REF_ID_REGEX, ref_id)
+
+    if len(matches) > 0:
+        ref_id = matches[0]
+
+        if ref_id:
+            return ref_id.replace("/", "-")
+
+    return ""
+
+
+def _to_snake_case(key: str) -> str:
+    key = _TO_SNAKE_CASE_REGEX.sub(r"_\1", key)
+    return key.lower()
+
 
 class MqttMessageFactory:
-
-    _REFID_REGEX = r"^\d+\/(\d+(?:\/\d+)?)$"
-    _SUPPORTED_OUTPUTS = [
-        "analog",
-        "gauge",
-        "onoff",
-        "scene",
-        "shutter",
-        "thermo",
-        "ventilation",
-    ]
-    _SUPPORTED_GAUGE_VARIANTS = {
-        "Current": "current",
-        "Energy": "energy",
-        "Power": "power",
-        "Temperature": "temperature",
-        "Voltage": "voltage",
-        "Volume": "volume_storage",
-        "Water": "water",
-    }
 
     _logger = logging.getLogger("qbha." + __name__)
     _settings = Settings()
@@ -37,19 +60,24 @@ class MqttMessageFactory:
     def create_homeassistant_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage | list[HomeAssistantMessage] | None:
         entityType = entity.type.lower()
 
-        if entityType not in self._SUPPORTED_OUTPUTS:
+        if entityType not in _SUPPORTED_OUTPUTS:
             self._logger.warning(f"Entity type '{entityType}' not (yet) supported.")
             return None
 
         match entityType:
             case "analog":
                 return self._create_light_message(entity, controller)
-            case "gauge":
-                if isinstance(entity.variant, (list, tuple)) or not self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant):
-                    self._logger.warning(f"Gauge with variant '{entity.variant}' not (yet) supported.")
-                    return None
 
-                return self._create_sensor_message_for_gauge(entity, controller)
+            case "gauge":
+                if isinstance(entity.variant, str) and _SUPPORTED_GAUGE_VARIANTS.get(entity.variant):
+                    return self._create_sensor_message_for_gauge_with_variant(entity, controller)
+
+                if any(supported in entity.properties for supported in _SUPPORTED_GAUGE_PROPERTIES):
+                    return self._create_sensor_message_for_gauge_by_properties(entity, controller)
+
+                self._logger.warning(f"Gauge with variant '{entity.variant}' not (yet) supported.")
+                return None
+
             case "onoff":
                 onoff_message = self._create_switch_message(entity, controller)
                 binarysensor_message = self._create_binarysensor_message(entity, controller)
@@ -63,8 +91,10 @@ class MqttMessageFactory:
 
             case "scene":
                 return self._create_scene_message(entity, controller)
+
             case "shutter":
                 return self._create_cover_message(entity, controller)
+
             case "thermo":
                 thermo_message = self._create_climate_message(entity, controller)
                 climatesensor_message = self._create_sensor_message_for_climate(entity, controller)
@@ -73,6 +103,7 @@ class MqttMessageFactory:
                     climatesensor_message.payload = None
 
                 return [thermo_message, climatesensor_message]
+
             case "ventilation":
                 return (
                     self._create_sensor_message_for_ventilation(entity, controller)
@@ -83,9 +114,9 @@ class MqttMessageFactory:
         return None
 
 
-    def _create_base_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice, domain: str, id_suffix: str = "") -> HomeAssistantMessage:
-        refId = self._parseRefId(entity.refId)
-        uniqueId = f"qbus_{controller.id}_{refId}{id_suffix}"
+    def _create_base_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice, domain: str, *, id_suffix: str = "", suffix_in_name: bool = False) -> HomeAssistantMessage:
+        ref_id = _parse_ref_id(entity.refId)
+        unique_id = f"qbus_{controller.id}_{ref_id}{id_suffix}"
 
         device = HomeAssistantDevice()
         device.name = "Qbus"
@@ -95,36 +126,30 @@ class MqttMessageFactory:
         device.sw_version = controller.version
 
         payload = HomeAssistantPayload()
-        payload.name = entity.name
-        payload.unique_id = uniqueId
-        payload.object_id = uniqueId
+
+        if suffix_in_name:
+            suffix = id_suffix.lstrip("_").replace("_", " ").title()
+            payload.name = f"{entity.name} {suffix}"
+        else:
+            payload.name = entity.name
+
+        payload.unique_id = unique_id
+        payload.object_id = unique_id
         payload.device = device
         payload.state_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/state"
         payload.json_attributes_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/state"
-        payload.json_attributes_template = '{ "controller_id": "' + controller.id + '", "entity_id": "{{ value_json.id }}", "ref_id": "' + refId + '" }'
+        payload.json_attributes_template = '{ "controller_id": "' + controller.id + '", "entity_id": "{{ value_json.id }}", "ref_id": "' + ref_id + '" }'
 
         if not domain.endswith("sensor"):
             payload.command_topic = f"cloudapp/QBUSMQTTGW/{controller.id}/{entity.id}/setState"
 
         message = HomeAssistantMessage()
-        message.topic = f"homeassistant/{domain}/{uniqueId}/config"
+        message.topic = f"homeassistant/{domain}/{unique_id}/config"
         message.retain = True
         message.qos = 2
         message.payload = payload
 
         return message
-
-
-    def _parseRefId(self, refId: str) -> str | None:
-        matches = re.findall(self._REFID_REGEX, refId)
-
-        if len(matches) > 0:
-            refId = matches[0]
-
-            if refId:
-                return refId.replace("/", "-")
-
-        return None
 
 
     def _create_light_message(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
@@ -158,7 +183,7 @@ class MqttMessageFactory:
 
 
     def _create_sensor_message_for_climate(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
-        message = self._create_base_message(entity, controller, "sensor", "_temperature")
+        message = self._create_base_message(entity, controller, "sensor", id_suffix="_temperature")
         message.payload.device_class = "temperature"
         message.payload.unit_of_measurement = "°C"
         message.payload.value_template = "{%- if value_json.properties.currTemp is defined -%} {{ value_json.properties.currTemp }} {%- endif -%}"
@@ -166,10 +191,10 @@ class MqttMessageFactory:
         return message
 
 
-    def _create_sensor_message_for_gauge(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
+    def _create_sensor_message_for_gauge_with_variant(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller, "sensor")
 
-        variant = self._SUPPORTED_GAUGE_VARIANTS.get(entity.variant)
+        variant = _SUPPORTED_GAUGE_VARIANTS.get(entity.variant) if isinstance(entity.variant, str) else None
         unit = entity.properties.get("currentValue").get("unit")
 
         if (variant == "water" or variant == "volume_storage") and unit == "l":
@@ -190,6 +215,34 @@ class MqttMessageFactory:
 
         return message
 
+    def _create_sensor_message_for_gauge_by_properties(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> list[HomeAssistantMessage]:
+        messages: list[HomeAssistantMessage] = []
+
+        for key, value in entity.properties.items():
+            if key not in _SUPPORTED_GAUGE_PROPERTIES:
+                self._logger.warning(f"Gauge property '{key}' not (yet) supported.")
+                continue
+
+            unit = value.get("unit")
+
+            message = self._create_base_message(entity, controller, "sensor", id_suffix=f"_{_to_snake_case(key)}", suffix_in_name=True)
+            message.payload.value_template = "{%- if '" + key + "' in value_json.properties -%}{{ value_json.properties." + key + " }}{%- endif -%}"
+            message.payload.unit_of_measurement = unit
+            message.payload.suggested_display_precision = 2
+
+            match unit:
+                case "kWh":
+                    message.payload.device_class = "energy"
+                    message.payload.state_class = "total"
+                case "L":
+                    message.payload.device_class = "volume_storage"
+                    message.payload.state_class = "total"
+                case _:
+                    message.payload.state_class = "measurement"
+
+            messages.append(message)
+
+        return messages
 
     def _create_sensor_message_for_ventilation(self, entity: QbusConfigEntity, controller: QbusConfigDevice) -> HomeAssistantMessage:
         message = self._create_base_message(entity, controller, "sensor")
@@ -283,7 +336,7 @@ class MqttMessageFactory:
             if (bs == entity.id or
                 bs == entity.name.upper() or
                 bs == entity.refId or
-                bs == self._parseRefId(entity.refId)):  # noqa: E129
+                bs == _parse_ref_id(entity.refId)):  # noqa: E129
                 return True
 
         return False

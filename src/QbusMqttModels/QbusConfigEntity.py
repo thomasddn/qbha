@@ -10,6 +10,6 @@ class QbusConfigEntity(BaseModel):
     originalName: str = None
     refId: str = None
     type: str = None,
-    variant: str | tuple[Any] | list[Any] = None,
-    actions: dict = {}
-    properties: dict = {}
+    variant: str | tuple[Any] | list[Any] | None = None,
+    actions: dict[str, Any] = {}
+    properties: dict[str, Any] = {}
