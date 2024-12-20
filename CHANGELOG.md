@@ -1,5 +1,17 @@
 # Changelog
 
+
+## [1.0.0] - 2024-12-20
+
+v1.0.0 – Finally, the Big 1.0! 🎉
+
+It's time to declare this add-on stable and ready for prime time. Thanks to everyone who contributed along the way! 🙌
+
+### Added
+
+- Support for variantless gauges
+
+
 ## [0.8.1] - 2024-12-05
 
 ### Added
@@ -109,7 +121,8 @@
 
 
 
-[Unreleased]: https://github.com/thomasddn/qbha/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/thomasddn/qbha/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/thomasddn/qbha/compare/v0.8.1...v1.0.0
 [0.8.1]: https://github.com/thomasddn/qbha/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/thomasddn/qbha/compare/v0.7.3...v0.8.0
 [0.7.3]: https://github.com/thomasddn/qbha/compare/v0.7.2...v0.7.3
