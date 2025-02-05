@@ -1,6 +1,6 @@
 # QBHA
 
-> [!IMPORTANT]
+> [!WARNING]
 > Qbus now has an [official integration](https://www.home-assistant.io/integrations/qbus) starting with Home Assistant 2025.2.0, which I helped develop. As new features continue to be added, **QBHA** will be phased out and eventually deprecated.
 >
 > However, the Qbus MQTT gateway, for which you can use [qbusmqtt](https://github.com/thomasddn/qbusmqtt), is still required.
